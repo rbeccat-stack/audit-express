@@ -6,9 +6,10 @@ import json
 import os
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 # Add backend dir to path so auditor import works
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -69,6 +70,23 @@ async def api_audit(
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Serve static frontend ──────────────────────────────────────
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str, request: Request):
+    """Serve index.html for any non-API path (SPA-style catch-all)."""
+    file_path = REPO_ROOT / full_path
+    if file_path.is_file() and file_path.suffix in {".html", ".css", ".js", ".png", ".jpg", ".svg", ".ico", ".json", ".webmanifest"}:
+        return FileResponse(str(file_path))
+    # Default to index.html
+    index = REPO_ROOT / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    return {"error": "not found"}
 
 
 if __name__ == "__main__":
