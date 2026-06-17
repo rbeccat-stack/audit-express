@@ -24,6 +24,35 @@ SSE events:
 - `result` → JSON `{ entreprise, force_detectee, opportunity_growth, question_entretien, candidat_fit, temps_generation }`
 - `error` → error string
 
+## Backend Files (`backend/`)
+
+- **`app.py`** — FastAPI server, SSE endpoint `GET /api/audit`
+- **`auditor.py`** — core logic: HTTP fetch + BeautifulSoup extraction + OpenRouter LLM
+- **`requirements.txt`** — Python deps
+- **`.env.template`** — copy to `.env`, fill `OPENROUTER_API_KEY`
+- **`.venv/`** — virtual environment (created at deploy)
+
+### Setup
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.template .env
+# Éditer .env avec ta clé OpenRouter
+uvicorn app:app --host 0.0.0.0 --port 8000
+```
+
+### Env vars
+- `OPENROUTER_API_KEY` — required, from `.env` or environment
+- `PORT` — default 8000
+
+## Deployment
+
+- **Caddyfile** at repo root — reverse proxies `/api/*` → localhost:8000
+- **systemd** at `deploy/audit-express.service` — run at boot, auto-restart
+
 ## UI Behavior
 
 - Bouton "Auditer" désactivé (`disabled`) tant que le champ URL est vide

@@ -1,0 +1,24 @@
+[Unit]
+Description=Audit Growth Express — Backend FastAPI
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/audit-express/backend
+ExecStart=/opt/audit-express/backend/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Environment=PORT=8000
+
+# Si tu utilises un .env dans backend/, le chemin est automatiquement détecté
+# Sinon, décommente la ligne ci-dessous avec ta vraie clé :
+# Environment=OPENROUTER_API_KEY=sk-or-...
+
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
