@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Growth Express</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* ── Hero plein écran ── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    /* Gradient mesh animé */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 15% 50%, #a78bfa 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 20%, #f472b6 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, #60a5fa 0%, transparent 45%),
+        radial-gradient(ellipse at 30% 10%, #c4b5fd 0%, transparent 40%),
+        #fdf4ff;
+      animation: meshShift 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes meshShift {
+      0%   { filter: blur(0px) saturate(1); }
+      50%  { filter: blur(2px) saturate(1.1); }
+      100% { filter: blur(0px) saturate(1); }
+    }
+
+    #hero > * { position: relative; z-index: 1; }
+
+    /* Badge "pill" en haut */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.7);
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .hero-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 2px rgba(34,197,94,0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,0.3); }
+      50%       { box-shadow: 0 0 0 5px rgba(34,197,94,0.1); }
+    }
+
+    #hero h1 {
+      font-size: clamp(28px, 6vw, 44px);
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    #hero p.subtitle {
+      font-size: clamp(15px, 2.5vw, 17px);
+      color: #6b7280;
+      margin-bottom: 40px;
+      max-width: 420px;
+    }
+
+    /* Input box style Lovable */
+    .input-card {
+      width: 100%;
+      max-width: 560px;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+      padding: 20px 20px 16px;
+    }
+
+    #url-input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      color: #111827;
+      outline: none;
+      caret-color: #7c3aed;
+      padding: 0 0 4px;
+      min-height: 28px;
+    }
+
+    #url-input::placeholder { color: transparent; }
+
+    /* Placeholder animé */
+    #animated-placeholder {
+      position: absolute;
+      top: 0; left: 0;
+      font-size: 16px;
+      color: #9ca3af;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .url-row {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #email-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: #374151;
+      outline: none;
+    }
+
+    #email-input::placeholder { color: #9ca3af; }
+
+    #audit-btn {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #7c3aed;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(124,58,237,0.4);
+      transition: background 0.2s, opacity 0.2s, transform 0.1s;
+    }
+
+    #audit-btn:hover:not(:disabled) { background: #6d28d9; transform: scale(1.06); }
+    #audit-btn:active:not(:disabled) { transform: scale(0.96); }
+    #audit-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+    #audit-btn svg { width: 16px; height: 16px; }
+
+    /* ── Zones post-hero ── */
+    .page-below {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Status */
+    #status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 48px 0;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(124,58,237,0.15);
+      border-top-color: #7c3aed;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status-text { font-size: 15px; color: #6b7280; text-align: center; }
+
+    /* Result cards */
+    #result { display: flex; flex-direction: column; gap: 12px; }
+
+    .audit-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px 20px;
+    }
+
+    .card-label {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card-label .label-text {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: #6b7280;
+    }
+
+    .badge {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .badge-green  { background: #16a34a; }
+    .badge-blue   { background: #2563eb; }
+    .badge-amber  { background: #d97706; }
+    .badge-violet { background: #9333ea; }
+
+    .card-content { font-size: 15px; color: #1f2937; line-height: 1.6; }
+
+    .result-footer {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-top: 4px; padding: 0 4px;
+    }
+
+    #timing {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px; color: #9ca3af;
+    }
+
+    #copy-btn {
+      background: none; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 6px 8px;
+      cursor: pointer; color: #9ca3af;
+      display: flex; align-items: center;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    #copy-btn:hover { color: #4b5563; border-color: #d1d5db; }
+    #copy-btn svg { width: 15px; height: 15px; }
+
+    #copy-feedback {
+      font-size: 12px; color: #16a34a; opacity: 0;
+      transition: opacity 0.2s;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    #copy-feedback.show { opacity: 1; }
+
+    /* Error */
+    #error {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 16px;
+      padding: 48px 0; text-align: center;
+    }
+
+    #error-icon {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #fef2f2;
+      display: flex; align-items: center; justify-content: center;
+      color: #ef4444;
+    }
+    #error-icon svg { width: 20px; height: 20px; }
+    #error-msg { font-size: 15px; color: #4b5563; }
+
+    #retry-btn {
+      padding: 10px 24px; border-radius: 999px;
+      background: #f3f4f6; border: 1px solid #e5e7eb;
+      font-size: 14px; color: #374151;
+      cursor: pointer; transition: background 0.2s;
+    }
+    #retry-btn:hover { background: #e5e7eb; }
+
+    @media (max-width: 480px) {
+      .page-below { padding: 24px 16px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Hero plein écran ── -->
+  <section id="hero">
+
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Lead magnet · Candidature growth
+    </div>
+
+    <h1>Audite une boîte<br>avant ton entretien</h1>
+    <p class="subtitle">Tape une URL, reçois un audit growth en 30s — forces, opportunités, question clé.</p>
+
+    <div class="input-card">
+      <div class="url-row">
+        <input
+          id="url-input"
+          type="url"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="URL de l'entreprise"
+        >
+        <span id="animated-placeholder"></span>
+      </div>
+      <div class="card-footer">
+        <input
+          id="email-input"
+          type="email"
+          placeholder="ton email (optionnel)"
+          autocomplete="email"
+        >
+        <button id="audit-btn" disabled aria-label="Auditer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── Zones résultat (sous le hero) ── -->
+  <div class="page-below">
+
+    <div id="status" class="hidden">
+      <div class="spinner"></div>
+      <p id="status-text">Initialisation…</p>
+    </div>
+
+    <div id="result" class="hidden">
+      <div class="audit-card">
+        <div class="card-label">
+          <span class="badge badge-green"></span>
+          <span class="label-text">Force détectée</span>
+        </div>
+        <p class="card-content" id="r-force"></p>
+      </div>
+      <div class="audit-card">
+        <div class="card-label">
+          <span class="badge badge-blue"></span>
+          <span class="label-text">Opportunity growth</span>
+        </div>
+        <p class="card-content" id="r-opportunity"></p>
+      </div>
+      <div class="audit-card">
+        <div class="card-label">
+          <span class="badge badge-amber"></span>
+          <span class="label-text">Question entretien</span>
+        </div>
+        <p class="card-content" id="r-question"></p>
+      </div>
+      <div class="audit-card">
+        <div class="card-label">
+          <span class="badge badge-violet"></span>
+          <span class="label-text">Candidat fit</span>
+        </div>
+        <p class="card-content" id="r-fit"></p>
+      </div>
+      <div class="result-footer">
+        <span id="timing"></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="copy-feedback">Copié !</span>
+          <button id="copy-btn" aria-label="Copier l'audit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="error" class="hidden">
+      <div id="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <p id="error-msg">Une erreur est survenue.</p>
+      <button id="retry-btn">Réessayer</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Éléments ──
+    const urlInput      = document.getElementById('url-input')
+    const emailInput    = document.getElementById('email-input')
+    const auditBtn      = document.getElementById('audit-btn')
+    const statusEl      = document.getElementById('status')
+    const statusText    = document.getElementById('status-text')
+    const resultEl      = document.getElementById('result')
+    const errorEl       = document.getElementById('error')
+    const errorMsg      = document.getElementById('error-msg')
+    const retryBtn      = document.getElementById('retry-btn')
+    const copyBtn       = document.getElementById('copy-btn')
+    const copyFeedback  = document.getElementById('copy-feedback')
+    const timingEl      = document.getElementById('timing')
+    const animPH        = document.getElementById('animated-placeholder')
+
+    let currentAudit = null
+
+    // ── Placeholder animé (typewriter en boucle) ──
+    const examples = [
+      'spotify.com',
+      'notion.so',
+      'alan.com',
+      'pennylane.fr',
+      'contentsquare.com',
+      'qonto.com',
+    ]
+
+    let exIdx = 0, charIdx = 0, deleting = false, phTimeout
+
+    function typePlaceholder() {
+      const word = examples[exIdx]
+      if (!deleting) {
+        charIdx++
+        animPH.textContent = word.slice(0, charIdx)
+        if (charIdx === word.length) {
+          deleting = true
+          phTimeout = setTimeout(typePlaceholder, 1800)
+        } else {
+          phTimeout = setTimeout(typePlaceholder, 80)
+        }
+      } else {
+        charIdx--
+        animPH.textContent = word.slice(0, charIdx)
+        if (charIdx === 0) {
+          deleting = false
+          exIdx = (exIdx + 1) % examples.length
+          phTimeout = setTimeout(typePlaceholder, 400)
+        } else {
+          phTimeout = setTimeout(typePlaceholder, 45)
+        }
+      }
+    }
+
+    typePlaceholder()
+
+    // Cacher le placeholder dès que l'user tape
+    urlInput.addEventListener('focus', () => { animPH.style.display = 'none' })
+    urlInput.addEventListener('blur',  () => {
+      if (!urlInput.value) animPH.style.display = ''
+    })
+
+    // ── Activation bouton ──
+    urlInput.addEventListener('input', () => {
+      auditBtn.disabled = urlInput.value.trim() === ''
+    })
+
+    // ── Lancer audit ──
+    auditBtn.addEventListener('click', startAudit)
+
+    function startAudit() {
+      const url   = urlInput.value.trim()
+      const email = emailInput.value.trim()
+      if (!url) return
+
+      resultEl.classList.add('hidden')
+      errorEl.classList.add('hidden')
+      statusEl.classList.remove('hidden')
+      statusText.textContent = 'Initialisation…'
+      auditBtn.disabled = true
+
+      // Scroll doux vers le bas
+      document.querySelector('.page-below').scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+      const apiUrl = `/api/audit?url=${encodeURIComponent(url)}&email=${encodeURIComponent(email)}`
+      const evtSource = new EventSource(apiUrl)
+
+      const timeoutId = setTimeout(() => {
+        evtSource.close()
+        showError("Ça prend trop de temps — réessaie.")
+      }, 45000)
+
+      evtSource.addEventListener('progress', (e) => { statusText.textContent = e.data })
+
+      evtSource.addEventListener('result', (e) => {
+        clearTimeout(timeoutId)
+        evtSource.close()
+        try {
+          displayAudit(JSON.parse(e.data))
+        } catch {
+          showError("Erreur de lecture du résultat — réessaie")
+        }
+      })
+
+      evtSource.addEventListener('error', () => {
+        clearTimeout(timeoutId)
+        evtSource.close()
+        showError("Audit interrompu — réessaie")
+      })
+    }
+
+    function displayAudit(audit) {
+      currentAudit = audit
+      document.getElementById('r-force').textContent       = audit.force_detectee      || ''
+      document.getElementById('r-opportunity').textContent = audit.opportunity_growth   || ''
+      document.getElementById('r-question').textContent    = audit.question_entretien   || ''
+      document.getElementById('r-fit').textContent         = audit.candidat_fit         || ''
+      timingEl.textContent = audit.temps_generation ? `Généré en ${audit.temps_generation}` : ''
+      statusEl.classList.add('hidden')
+      resultEl.classList.remove('hidden')
+      auditBtn.disabled = urlInput.value.trim() === ''
+    }
+
+    function showError(msg) {
+      statusEl.classList.add('hidden')
+      resultEl.classList.add('hidden')
+      errorMsg.textContent = msg
+      errorEl.classList.remove('hidden')
+      auditBtn.disabled = urlInput.value.trim() === ''
+    }
+
+    function resetUI() {
+      statusEl.classList.add('hidden')
+      resultEl.classList.add('hidden')
+      errorEl.classList.add('hidden')
+      currentAudit = null
+      auditBtn.disabled = urlInput.value.trim() === ''
+    }
+
+    retryBtn.addEventListener('click', resetUI)
+
+    copyBtn.addEventListener('click', () => {
+      if (!currentAudit) return
+      navigator.clipboard.writeText(formatAuditText(currentAudit)).then(() => {
+        copyFeedback.classList.add('show')
+        setTimeout(() => copyFeedback.classList.remove('show'), 2000)
+      })
+    })
+
+    function formatAuditText(audit) {
+      const lines = []
+      if (audit.entreprise)         lines.push(`Entreprise : ${audit.entreprise}`)
+      if (audit.force_detectee)     lines.push(`\nForce détectée\n${audit.force_detectee}`)
+      if (audit.opportunity_growth) lines.push(`\nOpportunity growth\n${audit.opportunity_growth}`)
+      if (audit.question_entretien) lines.push(`\nQuestion entretien\n${audit.question_entretien}`)
+      if (audit.candidat_fit)       lines.push(`\nCandidat fit\n${audit.candidat_fit}`)
+      if (audit.temps_generation)   lines.push(`\nGénéré en ${audit.temps_generation}`)
+      return lines.join('\n')
+    }
+  </script>
+
+</body>
+</html>
