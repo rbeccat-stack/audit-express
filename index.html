@@ -485,7 +485,7 @@
       // Scroll doux vers le bas
       document.querySelector('.page-below').scrollIntoView({ behavior: 'smooth', block: 'start' })
 
-      const apiUrl = `https://audit.remibk-studio.fr/api/audit?url=${encodeURIComponent(url)}&email=${encodeURIComponent(email)}`
+      const apiUrl = `https://audit-api.remibk-studio.fr/api/audit?url=${encodeURIComponent(url)}&email=${encodeURIComponent(email)}`
       const evtSource = new EventSource(apiUrl)
 
       const timeoutId = setTimeout(() => {
