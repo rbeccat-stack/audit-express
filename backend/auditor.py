@@ -6,6 +6,7 @@ Fetches website content, calls OpenRouter LLM, returns structured audit.
 
 import asyncio
 import json
+import logging
 import os
 import re
 import time
@@ -18,7 +19,10 @@ OPENROUTER_API_KEY = ""  # Set via env var or .env file
 OPENROUTER_MODEL = "openai/gpt-4o-mini"  # fast + cheap for MVP
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Auto-load from .env
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+FROM_EMAIL = "audit@remibk-studio.fr"
+REMI_EMAIL = "remi@remibk-studio.fr"
+
 _env_paths = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
     "/root/.hermes/.env",
@@ -35,7 +39,8 @@ for _p in _env_paths:
                 _v = _v.strip()
                 if _k == "OPENROUTER_API_KEY" and _v and _v != "***":
                     OPENROUTER_API_KEY = _v
-                    break
+                if _k == "RESEND_API_KEY" and _v and _v != "***":
+                    RESEND_API_KEY = _v
         if OPENROUTER_API_KEY:
             break
 
@@ -43,6 +48,10 @@ for _p in _env_paths:
 _env_var = os.environ.get("OPENROUTER_API_KEY", "")
 if _env_var:
     OPENROUTER_API_KEY = _env_var
+
+_resend_env = os.environ.get("RESEND_API_KEY", "")
+if _resend_env:
+    RESEND_API_KEY = _resend_env
 
 REQUEST_TIMEOUT = 30.0
 MAX_TEXT_LENGTH = 12_000  # characters to feed the LLM
@@ -161,6 +170,78 @@ Retourne UNIQUEMENT un JSON valide avec ces champs :
             return _fallback_audit(entreprise, f"Erreur LLM : {exc}")
 
 
+async def _send_email(to_email: str, audit: dict) -> None:
+    """Send audit result via Resend API."""
+    if not RESEND_API_KEY or not to_email:
+        return
+
+    entreprise = audit.get("entreprise", "cette entreprise")
+    force = audit.get("force_detectee", "")
+    opportunity = audit.get("opportunity_growth", "")
+    question = audit.get("question_entretien", "")
+    fit = audit.get("candidat_fit", "")
+    timing = audit.get("temps_generation", "")
+
+    html = f"""
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; color: #1f2937;">
+  <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 24px;">
+    Audit Growth Express — {entreprise}
+  </h2>
+
+  <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;">
+    <p style="font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin: 0 0 8px;">💪 Force détectée</p>
+    <p style="font-size: 15px; color: #1f2937; line-height: 1.6; margin: 0;">{force}</p>
+  </div>
+
+  <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;">
+    <p style="font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin: 0 0 8px;">📈 Opportunity growth</p>
+    <p style="font-size: 15px; color: #1f2937; line-height: 1.6; margin: 0;">{opportunity}</p>
+  </div>
+
+  <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;">
+    <p style="font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin: 0 0 8px;">❓ Question entretien</p>
+    <p style="font-size: 15px; color: #1f2937; line-height: 1.6; margin: 0;">{question}</p>
+  </div>
+
+  <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
+    <p style="font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin: 0 0 8px;">🎯 Candidat fit</p>
+    <p style="font-size: 15px; color: #1f2937; line-height: 1.6; margin: 0;">{fit}</p>
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+  <p style="font-size: 13px; color: #6b7280; margin: 0;">
+    Généré en {timing} · <a href="https://audit.remibk-studio.fr" style="color: #7c3aed;">audit.remibk-studio.fr</a>
+  </p>
+</body>
+</html>
+"""
+
+    payload = {
+        "from": f"Rémi — Audit Growth <{FROM_EMAIL}>",
+        "to": [to_email],
+        "subject": f"Votre audit growth — {entreprise}",
+        "html": html,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            resp.raise_for_status()
+            logging.info(f"Email sent to {to_email}: {resp.json().get('id')}")
+    except Exception as exc:
+        logging.warning(f"Email send failed: {exc}")
+
+
 def _fallback_audit(entreprise: str, reason: str) -> dict:
     """Return a placeholder audit when something fails."""
     return {
@@ -238,3 +319,7 @@ async def run_audit(url: str, email: str = "") -> AsyncGenerator[dict, None]:
     audit["temps_generation"] = f"~{elapsed}s"
 
     yield {"type": "result", "data": audit}
+
+    # Send email in background (non-blocking)
+    if email:
+        asyncio.create_task(_send_email(email, audit))
