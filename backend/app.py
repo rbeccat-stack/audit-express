@@ -36,6 +36,7 @@ app.add_middleware(
     allow_origins=[
         "https://audit.remibk-studio.fr",
         "https://www.audit.remibk-studio.fr",
+        "https://audit-api.remibk-studio.fr",
         "https://audit-express.vercel.app",
     ],
     allow_credentials=False,
