@@ -318,8 +318,8 @@ async def run_audit(url: str, email: str = "") -> AsyncGenerator[dict, None]:
     elapsed = round(time.time() - start)
     audit["temps_generation"] = f"~{elapsed}s"
 
-    yield {"type": "result", "data": audit}
-
-    # Send email in background (non-blocking)
+    # Send email in background BEFORE yielding (ensures task runs even if client disconnects)
     if email:
         asyncio.create_task(_send_email(email, audit))
+
+    yield {"type": "result", "data": audit}
