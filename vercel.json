@@ -1,0 +1,11 @@
+{
+  "name": "audit-growth-express",
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

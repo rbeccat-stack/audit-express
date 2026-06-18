@@ -8,9 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Stack
 
-Plain HTML + Vanilla JS (no build step, no framework). Single `index.html` file. Alpine.js allowed if reactivity becomes unwieldy.
+Plain HTML + Vanilla JS (no build step, no framework). Single `index.html` file.
 
-Backend: FastAPI on port 8000, fronted by Caddy reverse proxy on the same domain → zero CORS issues. Never add CORS headers or fetch workarounds; Caddy handles it.
+**Frontend** → **Vercel** (static hosting).
+**Backend** → FastAPI on VPS port 8000.
+
+API URL is absolute in index.html: `https://audit.remibk-studio.fr/api/audit`.
+Backend has `CORSMiddleware` configured for Vercel origins (see app.py).
 
 ## Backend Contract
 
@@ -50,8 +54,9 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 ## Deployment
 
-- **Caddyfile** at repo root — reverse proxies `/api/*` → localhost:8000
-- **systemd** at `deploy/audit-express.service` — run at boot, auto-restart
+- **Frontend** → **Vercel**: connect repo to Vercel, domain `audit.remibk-studio.fr`
+- **Backend** → **VPS** (systemd service): `deploy/audit-express.service`
+- **No Caddy needed** for the API (Vercel → direct to VPS:8000)
 
 ## UI Behavior
 
